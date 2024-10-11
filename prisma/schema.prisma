@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  ADMIN
+  USER
+}
+
+enum UserLevel {
+  DJ
+  SOFTWARE
+}
+
+enum RequestType {
+  SONG_REQUEST
+  SHOUTOUT_REQUEST
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FULLFILLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+}
+
+model User {
+  id        String    @id @default(cuid())
+  username  String    @unique
+  email     String    @unique
+  phone     String    @unique
+  userType  UserType
+  userLevel UserLevel
+  password  String
+  createdAt DateTime  @default(now())
+  updateAt  DateTime  @updatedAt
+  clubs     Club[]    @relation(name: "user-club")
+
+  @@map("users")
+}
+
+model Request {
+  id            String        @id @default(cuid())
+  name          String
+  contact       String
+  description   String
+  requestType   RequestType
+  status        RequestStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  paymentId     String?
+  clubId        String
+  payment       Payment?      @relation(fields: [paymentId], references: [id])
+  club          Club          @relation(fields: [clubId], references: [id])
+
+  @@map("requests")
+}
+
+model Club {
+  id        String    @id @default(cuid())
+  name      String
+  address   String
+  contact   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  requests  Request[]
+  songs     SONG[]    @relation(name: "club-song")
+  users     User[]    @relation(name: "user-club")
+
+  @@map("clubs")
+}
+
+model Payment {
+  id               String    @id @default(cuid())
+  orderId          String    @unique
+  paymentSignature String
+  amount           Int
+  request          Request[]
+  paymentAt        DateTime  @default(now())
+
+  @@map("payments")
+}
+
+model SONG {
+  id     String  @id @default(cuid())
+  name   String
+  artist String
+  album  String
+  genre  String?
+  clubs  Club[]  @relation(name: "club-song")
+
+  @@map("songs")
+}
